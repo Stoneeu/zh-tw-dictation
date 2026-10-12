@@ -1,0 +1,22 @@
+{
+  "name": "zh-tw-dictation",
+  "version": "0.2.0",
+  "description": "Converts Simplified Chinese in your prompts, such as voice dictation, to Traditional Chinese with Taiwan phrasing (OpenCC s2twp), and corrects the prompt box through a Voice Hunter text API on a shortcut",
+  "author": { "name": "StoneEU" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "useApi": {
+      "type": "boolean",
+      "title": "API 校正按鈕",
+      "description": "在輸入框上方顯示「API 校正」按鈕，按下或按快捷鍵時把輸入框的文字送到 Voice Hunter 校正",
+      "default": false
+    },
+    "apiUrl": {
+      "type": "string",
+      "title": "API 校正網址",
+      "description": "Voice Hunter 的 POST /v1/text/optimize 完整網址",
+      "default": "http://127.0.0.1:8765/v1/text/optimize"
+    }
+  }
+}

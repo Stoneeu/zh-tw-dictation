@@ -1,0 +1,6 @@
+{
+  "name": "zh-tw-dictation",
+  "owner": { "name": "StoneEU" },
+  "description": "A Claude Code mod that turns Simplified Chinese in the prompt box, such as voice dictation, into Traditional Chinese with Taiwan phrasing",
+  "plugins": [{ "name": "zh-tw-dictation", "source": "./" }]
+}
