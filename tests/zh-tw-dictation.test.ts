@@ -15,11 +15,21 @@ const DICTS: Record<string, string> = {
   TWVariants: '裏\t裡\n羣\t群\n',
 }
 
-/** Answers the mod's dictionary reads, then starts the session, which loads them. Time moves only when the test moves it. */
-async function start($: any, on: any, env: Record<string, string> = {}) {
+/**
+ * Answers the mod's dictionary reads, and its read of the files in `files` by path, then starts
+ * the session, which loads them. Time moves only when the test moves it.
+ *
+ * The engine hands the hook an absolute path for this platform (`C:\home\me\...` on Windows),
+ * so a file is matched by the end of its path, with `/` for separators.
+ */
+async function start($: any, on: any, env: Record<string, string> = {}, files: Record<string, string> = {}) {
   const clock = mock.clock(on)
   mock.env(on, env)
   on('fs.read', async (_$: any, e: any) => {
+    const path = e.path.replaceAll('\\', '/')
+    const file = Object.keys(files).find(name => path.endsWith(name))
+    if (file !== undefined) return { value: files[file] }
+    if (/keybindings\.json$/.test(e.path)) throw new Error(`ENOENT: no such file or directory, open '${e.path}'`)
     const name = /[\\/]dict[\\/](\w+)\.txt$/.exec(e.path)?.[1]
     if (name === undefined || !(name in DICTS)) throw new Error(`unexpected read: ${e.path}`)
     return { value: DICTS[name] }
@@ -173,6 +183,34 @@ test('until the person turns the API on there is no button, so nothing reaches a
   await start($, on)
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ key: 'api' })).toBeUndefined()
+})
+
+/** The person's keybindings.json: the API chord under Global, where it reaches the button, and one under Chat, where it doesn't. */
+const KEYBINDINGS = JSON.stringify({
+  bindings: [
+    { context: 'Chat', bindings: { 'ctrl+k': 'diff:back' } },
+    { context: 'Global', bindings: { 'ctrl+t': 'app:toggleTodos', 'alt+j': 'diff:back' } },
+  ],
+})
+
+test('the chord the person bound shows beside the button, so they need not open keybindings.json to recall it', API_ON, async ($, on) => {
+  await start($, on, { HOME: '/home/me' }, { '/home/me/.claude/keybindings.json': KEYBINDINGS })
+  const ui = await $.ui.mount(BAND)
+  expect(await ui.find({ key: 'api' })).toBeDefined()
+  // ctrl+k is bound under Chat, where it never reaches the button: showing it would name a key that does nothing.
+  expect((await ui.findAll({ type: 'Text' })).map(text => text.text)).toEqual(['alt+j'])
+})
+
+test("keybindings.json is read where CLAUDE_CONFIG_DIR moves Claude Code's config, as Claude Code reads it", API_ON, async ($, on) => {
+  await start($, on, { HOME: '/home/me', CLAUDE_CONFIG_DIR: '/srv/claude' }, { '/srv/claude/keybindings.json': KEYBINDINGS })
+  expect((await (await $.ui.mount(BAND)).find({ type: 'Text' }))?.text).toBe('alt+j')
+})
+
+test('with no chord bound, nothing beside the button promises a shortcut', API_ON, async ($, on) => {
+  await start($, on, { HOME: '/home/me' })
+  const ui = await $.ui.mount(BAND)
+  expect(await ui.find({ key: 'api' })).toBeDefined()
+  expect(await ui.findAll({ type: 'Text' })).toEqual([])
 })
 
 test("pressing API 校正 sends the box to the configured URL and leaves Voice Hunter's answer as it came", { options: { useApi: true, apiUrl: API_URL } }, async ($, on) => {

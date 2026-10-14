@@ -28,6 +28,31 @@ const API_TIMEOUT_MS = 30_000
  */
 const API_ACTION = 'diff:back'
 
+/** The chord the person bound to API_ACTION, read when the session starts and shown beside the button; empty when none is. */
+let apiChord = ''
+
+/**
+ * Reads the chords bound to API_ACTION from keybindings.json, in Claude Code's config directory.
+ * Only Global bindings count: one under Chat never reaches the button, so showing it would name a
+ * key that does nothing. A missing or unreadable file shows no chord.
+ */
+async function readApiChord($: EngineInterface): Promise<string> {
+  const home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME'))
+  const dir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? (home && `${home}/.claude`)
+  if (!dir) return ''
+  try {
+    const { bindings } = JSON.parse(await $.fs.read(`${dir}/keybindings.json`))
+    return bindings
+      .filter((block: any) => block.context === 'Global')
+      .flatMap((block: any) => Object.entries(block.bindings))
+      .filter(([, action]: [string, unknown]) => action === API_ACTION)
+      .map(([chord]: [string, unknown]) => chord)
+      .join(' / ')
+  } catch {
+    return ''
+  }
+}
+
 type Answer = { text: string } | { error: string }
 
 /** Asks Voice Hunter's POST /v1/text/optimize to correct `text`, as its API document describes. */
@@ -104,6 +129,7 @@ export const register: Register = (on, options) => {
     for (const name of DICT_NAMES) dicts[name] = parseDict(await $.fs.read(`${$.plugin.root}/dict/${name}.txt`))
     const convert = createDictationConverter(dicts)
     toTaiwan = convert
+    if (useApi) apiChord = await readApiChord($)
     await setCorrecting($, false)
 
     // Dictation writes the box without raising any event a hook could take, so the box is
@@ -151,10 +177,10 @@ export const register: Register = (on, options) => {
   // Enter and the settle timer never call it.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!useApi || e.props.hasSurvey) return next(e)
-    const { Box, Button } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
     const isBusy = await read($, correcting)
     return (
-      <Box>
+      <Box gap={1}>
         <Button
           key="api"
           label={isBusy ? 'API 校正中…' : 'API 校正'}
@@ -162,6 +188,7 @@ export const register: Register = (on, options) => {
           dimColor
           onPress={() => correctWithApi($, apiUrl)}
         />
+        {apiChord ? <Text dimColor>{apiChord}</Text> : null}
       </Box>
     )
   })
