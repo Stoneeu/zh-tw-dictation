@@ -180,7 +180,7 @@ export const register: Register = (on, options) => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const isBusy = await read($, correcting)
     return (
-      <Box gap={1}>
+      <Box flexDirection="row" columnGap={1}>
         <Button
           key="api"
           label={isBusy ? 'API 校正中…' : 'API 校正'}
