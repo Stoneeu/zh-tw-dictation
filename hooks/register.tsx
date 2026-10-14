@@ -183,7 +183,7 @@ export const register: Register = (on, options) => {
       <Box flexDirection="row" columnGap={1}>
         <Button
           key="api"
-          label={isBusy ? 'API 校正中…' : 'API 校正'}
+          label={isBusy ? 'VOICE 校正中…' : 'VOICE 校正'}
           action={API_ACTION}
           dimColor
           onPress={() => correctWithApi($, apiUrl)}

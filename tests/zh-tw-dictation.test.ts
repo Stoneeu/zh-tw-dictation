@@ -213,7 +213,7 @@ test('with no chord bound, nothing beside the button promises a shortcut', API_O
   expect(await ui.findAll({ type: 'Text' })).toEqual([])
 })
 
-test("pressing API 校正 sends the box to the configured URL and leaves Voice Hunter's answer as it came", { options: { useApi: true, apiUrl: API_URL } }, async ($, on) => {
+test("pressing VOICE 校正 sends the box to the configured URL and leaves Voice Hunter's answer as it came", { options: { useApi: true, apiUrl: API_URL } }, async ($, on) => {
   const box = promptBox(on)
   // 个 is still Simplified: the timer or Enter converting it would mean the person sends something other than the answer they saw.
   const requests = voiceHunter(on, () => answer('那个軟體'))
